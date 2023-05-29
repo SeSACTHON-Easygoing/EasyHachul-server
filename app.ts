@@ -14,6 +14,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 import Koa from 'koa';
+import cors from '@koa/cors';
 import MongodbConnect from './src/config/mongodb.config';
 import { koaBody } from 'koa-body';
 import { allRouter } from './src/routes';
@@ -22,6 +23,11 @@ const app = new Koa();
 
 // mongodb connection.
 (async () => await MongodbConnect())();
+
+app.use(cors({
+  origin : '*',
+  credentials : true,
+}));
 
 app.use(koaBody());
 
