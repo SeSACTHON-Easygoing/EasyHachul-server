@@ -14,10 +14,17 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 import Koa from 'koa';
+import MongodbConnect from './src/config/mongodb.config';
 import { koaBody } from 'koa-body';
+import { allRouter } from './src/routes';
 
 const app = new Koa();
 
+// mongodb connection.
+(async () => await MongodbConnect())();
+
 app.use(koaBody());
+
+app.use(allRouter.routes()).use(allRouter.prefix('/').allowedMethods());
 
 app.listen(process.env.PORT, () => console.log(`Server is running on port ${process.env.PORT}`));
