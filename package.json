@@ -1,5 +1,5 @@
 {
-  "name": "chat-server",
+  "name": "easygoing-server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,7 +11,7 @@
     "dev": "NODE_ENV=development nodemon -e ts",
     "start": "node dist/app.js",
     "build": "tsc --build && npm run dist",
-    "dist": "sh ./dist.sh",
+    "dist": "sh ./bundle2zip.sh",
     "deploy": "npm run build && git add . && git commit -m \":rocket: v$npm_package_version\" && eb deploy --staged"
   },
   "keywords": [],
