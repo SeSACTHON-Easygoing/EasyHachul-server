@@ -25,6 +25,6 @@ const app = new Koa();
 
 app.use(koaBody());
 
-app.use(allRouter.routes()).use(allRouter.prefix('/').allowedMethods());
+app.use(allRouter.routes()).use(allRouter.prefix('/api/subway').allowedMethods());
 
 app.listen(process.env.PORT, () => console.log(`Server is running on port ${process.env.PORT}`));
