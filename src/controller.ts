@@ -24,7 +24,7 @@ export async function searchStationNameCtr (ctx: Context, next: Next) {
     searchResult = await searchStationName(newQeury as string);
 
     await searchResult.forEach(doc => {
-      if (doc.stationName.includes(newQeury)) {
+      if (doc.stationName.includes(newQeury) && doc.stationName.split('')[0] === newQeury.split('')[0]) {
         searchList.push(doc);
       }
     });
@@ -32,7 +32,7 @@ export async function searchStationNameCtr (ctx: Context, next: Next) {
     searchResult = await searchStationName(query as string);
 
     await searchResult.forEach(doc => {
-      if (doc.stationName.includes(query)) {
+      if (doc.stationName.includes(query) && doc.stationName.split('')[0] === query.split('')[0]) {
         searchList.push(doc);
       }
     });
