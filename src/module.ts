@@ -16,7 +16,7 @@ export async function searchStationName (query: string) {
           },
           'fuzzy': {
             'maxEdits': 1,
-            // 'prefixLength' : 1,
+            'prefixLength' : 1,
           },
         },
       },
