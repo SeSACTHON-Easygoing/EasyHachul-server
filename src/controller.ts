@@ -16,7 +16,11 @@ export async function searchStationNameCtr (ctx: Context, next: Next) {
 
   const searchResult = await searchStationName(query as string);
   const searchList: any = [];
-  await searchResult.forEach(doc => searchList.push(doc));
+  await searchResult.forEach(doc => {
+    if (doc.stationName.includes(query)) {
+      searchList.push(doc);
+    }
+  });
 
   ctx.response.body = {
     result : { success : true, message : '' },

@@ -12,17 +12,17 @@ export async function searchStationName (query: string) {
         'text' : {
           'query' : query,
           'path' : {
-            'wildcard' : '*',
+            'wildcard' : 'stationName*',
           },
           'fuzzy': {
             'maxEdits': 1,
-            'prefixLength' : 1,
+            // 'prefixLength' : 1,
           },
         },
       },
     },
     {
-      '$limit' : 5,
+      '$limit' : 10,
     },
     {
       '$project' : {
