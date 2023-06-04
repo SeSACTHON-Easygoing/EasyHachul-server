@@ -12,15 +12,31 @@ export async function getStationInfoCtr (ctx: Context, next: Next) {
 }
 
 export async function searchStationNameCtr (ctx: Context, next: Next) {
-  const { query } = ctx.query;
+  const query = ctx.query.query as string;
 
-  const searchResult = await searchStationName(query as string);
+  let searchResult;
   const searchList: any = [];
-  await searchResult.forEach(doc => {
-    if (doc.stationName.includes(query)) {
-      searchList.push(doc);
-    }
-  });
+
+  if (query!.length > 1 && query!.split('').pop() === '역') {
+    const conv = query!.split('');
+    conv.pop();
+    const newQeury = conv!.join('');
+    searchResult = await searchStationName(newQeury as string);
+
+    await searchResult.forEach(doc => {
+      if (doc.stationName.includes(newQeury)) {
+        searchList.push(doc);
+      }
+    });
+  } else {
+    searchResult = await searchStationName(query as string);
+
+    await searchResult.forEach(doc => {
+      if (doc.stationName.includes(query)) {
+        searchList.push(doc);
+      }
+    });
+  }
 
   ctx.response.body = {
     result : { success : true, message : '' },
