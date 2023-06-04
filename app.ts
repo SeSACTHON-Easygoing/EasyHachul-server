@@ -17,20 +17,18 @@ import Koa from 'koa';
 import cors from '@koa/cors';
 import MongodbConnect from './src/config/mongodb.config';
 import { koaBody } from 'koa-body';
-import { allRouter } from './src/routes';
+import { allRouter, healthRouter } from './src/routes';
 
 const app = new Koa();
 
 // mongodb connection.
 (async () => await MongodbConnect())();
 
-app.use(cors({
-  origin : '*',
-  credentials : true,
-}));
+app.use(cors());
 
 app.use(koaBody());
 
+app.use(healthRouter.routes()).use(healthRouter.allowedMethods());
 app.use(allRouter.routes()).use(allRouter.prefix('/api/subway').allowedMethods());
 
 app.listen(process.env.PORT, () => console.log(`Server is running on port ${process.env.PORT}`));
