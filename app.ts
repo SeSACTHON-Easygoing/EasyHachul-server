@@ -17,7 +17,8 @@ import Koa from 'koa';
 import cors from '@koa/cors';
 import MongodbConnect from './src/config/mongodb.config';
 import { koaBody } from 'koa-body';
-import { allRouter, healthRouter } from './src/routes';
+import { allRouter } from './src/routes';
+import { healthRouter } from './src/config/healthchecker';
 
 const app = new Koa();
 
