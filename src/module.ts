@@ -5,30 +5,26 @@ export async function getStationInfo () {
 }
 
 export async function searchStationName (query: string) {
-  return subwayDB.collection('stations').aggregate([
+  return subwayDB.collection('seoulOp').aggregate([
     {
       '$search' : {
-        'index' : 'searchStation',
-        'text' : {
+        'index' : 'stNm',
+        'autocomplete' : {
           'query' : query,
-          'path' : {
-            'wildcard' : 'stationName*',
-          },
+          'path' : 'stNm',
           'fuzzy': {
             'maxEdits': 1,
-            'prefixLength' : 2,
           },
         },
       },
     },
     {
-      '$limit' : 10,
-    },
-    {
       '$project' : {
         '_id' : 1,
-        'stationName' : 1,
+        'stNm' : 1,
         'line' : 1,
+        'code': 1,
+        'tel': 1,
       },
     },
   ]);
