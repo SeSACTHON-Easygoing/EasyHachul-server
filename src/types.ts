@@ -1,5 +1,4 @@
 import { ObjectId } from 'bson';
-import exp from 'constants';
 
 interface Lift {
   no: string;
@@ -142,7 +141,7 @@ export interface RouteAPI {
   fare: number; // 카드요금 (성인기준)
   cashFare: number; // 현금요금 (성인기준)
   driveInfoSet: { // 확장노드
-    drivenInfo: Array<{
+    driveInfo: Array<{
       laneID: string; // 승차역 ID
       laneName: string; // 승차역 호선명
       startName: string; // 승차역 명

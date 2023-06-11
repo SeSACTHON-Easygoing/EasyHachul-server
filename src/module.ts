@@ -25,6 +25,7 @@ export async function searchStationName (query: string) {
         'line' : 1,
         'code': 1,
         'tel': 1,
+        'stCode': 1,
       },
     },
   ]);
