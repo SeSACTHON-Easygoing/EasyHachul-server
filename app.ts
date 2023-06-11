@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === 'production') {
   throw new Error('Not defined process.env.NODE_ENV');
 }
 
-import Koa from 'koa';
+import Koa, { Context, Next } from 'koa';
 import cors from '@koa/cors';
 import MongodbConnect from './src/config/mongodb.config';
 import { koaBody } from 'koa-body';
@@ -28,8 +28,30 @@ const app = new Koa();
 app.use(cors());
 
 app.use(koaBody());
+app.use(async (ctx: Context, next: Next) => {
+  try {
+    await next();
+  } catch (err) {
+    if (err instanceof Error) {
+      ctx.status = 200;
+      ctx.response.body = {
+        result : {
+          success : false,
+          message : err.message,
+        },
+        data : {},
+      };
+      ctx.app.emit('error', err, ctx);
+    }
+  }
+});
 
 app.use(healthRouter.routes()).use(healthRouter.allowedMethods());
 app.use(allRouter.routes()).use(allRouter.prefix('/api/subway').allowedMethods());
+
+app.on('error', (err: any, ctx: Context) => {
+  console.log(ctx.request.path);
+  console.error(err);
+});
 
 app.listen(process.env.PORT, () => console.log(`Server is running on port ${process.env.PORT}`));
