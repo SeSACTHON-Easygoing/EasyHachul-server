@@ -1,32 +1,51 @@
-import axios from 'axios';
+import { default as axios } from 'axios';
 import { RouteAPI } from './types';
+import { subwayDB } from './config/mongodb.config';
 
-const { OPENAPI_MOVEMENT, OPENAPI_DISTANCE, OPENAPI_ROUTE } = process.env;
+const { OPENAPI_MOVEMENT, OPENAPI_DISTANCE, OPENAPI_ROUTE, OPENAPI_TRFMOVEMENT } = process.env;
 
-export async function getTrainDistances (routeInfo: RouteAPI) {
+export async function getTrainDistances (routeInfo: RouteAPI, stIndex: number, trIndex: number, tr: boolean) {
   const { driveInfoSet : { driveInfo }, stationSet : { stations } } = routeInfo;
-  const plfNo = stations[1].startID - stations[0].startID === 1 ? 1 : 2;
-  const response = await axios.get(
-    `${OPENAPI_DISTANCE}&lnCd=${driveInfo[0].laneID}&stinCd=${stations[0].startID}&plfNo=${plfNo}`
-  );
+  const plfNo = stations[stIndex].startID - stations[stIndex].endSID === 1 ? 1 : 2;
+  if (tr) {
+    const lane = driveInfo[trIndex].wayCode;
+    const response = await axios.get(
+      `${OPENAPI_DISTANCE}&lnCd=${lane}&stinCd=${stations[stIndex].startID}&plfNo=${plfNo}`
+    );
 
-  // if (response.data.header.resultCode === '03') {
-  //   return;
-  // }
+    const list = response.data.body;
+    list.sort((a: any, b: any) => a.sfDst - b.sfDst);
+    const shtDistance = list.slice(0, 3).map((doc: any) => {
+      return `${doc.carOrdr}-${doc.carEtrcNo}`;
+    });
+    const lngDistance = list.slice(-4, -1).map((doc: any) => {
+      return `${doc.carOrdr}-${doc.carEtrcNo}`;
+    });
 
-  const list = response.data.body;
-  list.sort((a: any, b: any) => a.sfDst - b.sfDst);
-  const shtDistance = list.slice(0, 3).map((doc: any) => {
-    return `${doc.carOrdr}-${doc.carEtrcNo}`;
-  });
-  const lngDistance = list.slice(-4, -1).map((doc: any) => {
-    return `${doc.carOrdr}-${doc.carEtrcNo}`;
-  });
+    return {
+      shtDistance,
+      lngDistance,
+    };
+  } else {
+    const lane = driveInfo[trIndex].laneID;
+    const response = await axios.get(
+      `${OPENAPI_DISTANCE}&lnCd=${lane}&stinCd=${stations[stIndex].startID}&plfNo=${plfNo}`
+    );
 
-  return {
-    shtDistance,
-    lngDistance,
-  };
+    const list = response.data.body;
+    list.sort((a: any, b: any) => a.sfDst - b.sfDst);
+    const shtDistance = list.slice(0, 3).map((doc: any) => {
+      return `${doc.carOrdr}-${doc.carEtrcNo}`;
+    });
+    const lngDistance = list.slice(-4, -1).map((doc: any) => {
+      return `${doc.carOrdr}-${doc.carEtrcNo}`;
+    });
+
+    return {
+      shtDistance,
+      lngDistance,
+    };
+  }
 }
 
 export async function getTotalMovement (routeInfo: RouteAPI) {
@@ -45,35 +64,151 @@ export async function getTotalMovement (routeInfo: RouteAPI) {
   };
 }
 
+export async function getTransferMovement (routeInfo: RouteAPI, index: number) {
+  const { driveInfoSet : { driveInfo }, stationSet : { stations } } = routeInfo;
+  const response = await axios.get(
+    `${OPENAPI_TRFMOVEMENT}&lnCd=${driveInfo[index].laneID}`+
+    `&stinCd=${stations[driveInfo[index].stationCount - 1].endSID}&chthTgtLn=${driveInfo[index].wayCode}`
+  );
+
+  const align = response.data.body[0].mvPathMgNo;
+  const path = response.data.body.filter((doc: any) => doc.mvPathMgNo === align);
+  const pathList = path.map((doc: any) => doc.mvContDtl);
+
+  return {
+    stMovePath : response.data.body[0].stMovePath,
+    edMovePath : response.data.body[0].edMovePath,
+    pathList,
+  };
+}
+
 export async function getRouteInfo (stStation: any, endStation: any) {
   const { data } = await axios.get(`${OPENAPI_ROUTE}&SID=${stStation.code.slice(1)}&EID=${endStation.code.slice(1)}`);
-  console.log(data);
   if (!data?.result) {
     return null;
   }
   return data.result;
 }
 
-export async function stStaionInfo (routeInfo: RouteAPI) {
+export async function getStStationInfo (routeInfo: RouteAPI, stStation: any) {
   const movement = await getTotalMovement(routeInfo);
-  const distance = await getTrainDistances(routeInfo);
-
-  const mvTime = routeInfo.stationSet.stations.slice(0, (routeInfo.driveInfoSet.driveInfo[0].stationCount) - 1);
+  console.log('111111');
+  const distance = await getTrainDistances(routeInfo, 0, 0, false);
   const mvPathNm = routeInfo.stationSet.stations.slice(0, (routeInfo.driveInfoSet.driveInfo[0].stationCount));
   return {
-    movement,
-    distance,
-    mvTime,
-    mvPathNm,
+    stPath : {
+      exit : movement.stMovePath,
+      route : movement.edMovePath,
+      detail : movement.pathList,
+    },
+    onInfo : {
+      stationName : stStation.name,
+      onLine : stStation.line,
+      route : movement.edMovePath,
+      toWay : routeInfo.driveInfoSet.driveInfo[0].wayName,
+      arrived : '',
+      etc : {
+        wheelchair : '',
+        shtDistance : distance?.shtDistance.join(' '),
+        lngDistance : distance?.lngDistance.join(' '),
+      },
+      mvTime : mvPathNm[mvPathNm.length - 1].travelTime,
+      mvPathCnt : mvPathNm.length,
+      mvPathNm : mvPathNm.map((doc: any) => doc.startName),
+    },
   };
 }
 
-export async function endStationInfo (routeInfo: RouteAPI) {
+export async function getTrStationInfo (routeInfo: RouteAPI) {
+  if (!routeInfo?.exChangeInfoSet) {
+    return [];
+  } else {
+    const distance = await Promise.all(
+      routeInfo.exChangeInfoSet.exChangeInfo.map(async (doc: any, index: number) => {
+        const distance = await getTrainDistances(
+          routeInfo, routeInfo.driveInfoSet.driveInfo[index].stationCount+1, index, true
+        );
+        const trInfo = await getTransferMovement(routeInfo, index);
+        const mvPath = routeInfo.stationSet.stations.filter(
+          (st: any) => String(doc.exSID).slice(0, 1) === String(st.endSID).slice(0, 1)
+        );
+        return {
+          offInfo : {
+            stationName : doc.exName,
+            offLine : doc.laneName,
+            onLine : `${String(doc.exSID).slice(0, 1)}호선`,
+            door : '',
+            etc : {
+              shtOnLift : '',
+              shtDistance : distance?.shtDistance.join(' '),
+              lngDistance : distance?.lngDistance.join(' '),
+            },
+            trInfo : {
+              route : trInfo.edMovePath,
+              detail : trInfo.pathList,
+            },
+            onInfo : {
+              stationName : doc.exName,
+              line : `${String(doc.exSID).slice(0, 1)}호선`,
+              route : `${doc.exName} 방면`,
+              toWay : routeInfo.driveInfoSet.driveInfo[index + 1].wayName === '내선순환' ?
+                '내선순환' : `${routeInfo.driveInfoSet.driveInfo[index + 1].wayName} 행`,
+              arrived : '',
+              etc : {
+                wheelchair : '',
+                shtDistance : distance?.shtDistance.join(' '),
+                lngDistance : distance?.lngDistance.join(' '),
+              },
+              mvTime : mvPath[mvPath.length-1].travelTime,
+              mvPathCnt : mvPath.length,
+              mvPathNm : mvPath.map((doc: any) => doc.startName),
+            },
+          },
+        };
+      })
+    );
+    return distance;
+  }
+}
+
+export async function getEndStationInfo (routeInfo: RouteAPI, endStation: any) {
   const movement = await getTotalMovement(routeInfo);
-  const distance = await getTrainDistances(routeInfo);
+  const { driveInfoSet : { driveInfo }, stationSet : { stations } } = routeInfo;
+  const plfNo = stations[stations.length - 1].startID - stations[stations.length - 1].endSID === 1 ? 1 : 2;
+  const lastSt = await subwayDB.collection('seoulOp').findOne({ code : `0${stations[stations.length - 1].endSID}` });
+  const response = await axios.get(
+    `${OPENAPI_DISTANCE}&lnCd=${lastSt!.line.slice(0, 1)}&stinCd=${lastSt!.stCode.slice(1)}&plfNo=${plfNo}`
+  );
+
+  const list = response.data.body;
+  list.sort((a: any, b: any) => a.sfDst - b.sfDst);
+  const shtDistance = list.slice(0, 3).map((doc: any) => {
+    return `${doc.carOrdr}-${doc.carEtrcNo}`;
+  });
+  const lngDistance = list.slice(-4, -1).map((doc: any) => {
+    return `${doc.carOrdr}-${doc.carEtrcNo}`;
+  });
+
+  const distance = {
+    shtDistance,
+    lngDistance,
+  };
 
   return {
-    movement,
-    distance,
+    offInfo : {
+      stationName : endStation.name,
+      offLine : endStation.line,
+      door : '',
+      etc : {
+        shtOnLift : '',
+        shtDistance : distance?.shtDistance.join(' '),
+        lngDistance : distance?.lngDistance.join(' '),
+      },
+    },
+    endPath : {
+      exit : '',
+      route : '',
+      detail : [],
+    },
   };
 }

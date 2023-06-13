@@ -1,11 +1,11 @@
 import { Context, Next } from 'koa';
 import { getStationInfo, searchStationName } from './module';
-import axios from 'axios';
-import { RouteAPI } from './types';
-import { subwayDB } from './config/mongodb.config';
-import { getRouteInfo, getTotalMovement, getTrainDistances, stStaionInfo } from './openapiLogic';
-
-const { OPENAPI_ROUTE, OPENAPI_MOVEMENT } = process.env;
+import {
+  getEndStationInfo,
+  getRouteInfo,
+  getStStationInfo,
+  getTrStationInfo,
+} from './openapiLogic';
 
 export async function getStationInfoCtr (ctx: Context, next: Next) {
   const allData = await getStationInfo();
@@ -67,57 +67,16 @@ export async function getRouteInfoCtr (ctx: Context, next: Next) {
       data : {},
     };
   }
-  const stStationInfo = await stStaionInfo(routeInfo);
-  let trStation;
-  if (!routeInfo?.exChangeInfoSet) {
-    trStation = [];
-  } else {
-  }
+  const stStationInfo = await getStStationInfo(routeInfo, stStation);
+  const endStationInfo = await getEndStationInfo(routeInfo, endStation);
+  const trStation = await getTrStationInfo(routeInfo);
 
   ctx.response.body = {
     result : { success : true, message : '' },
     data : {
-      stStation : {
-        stPath : {
-          exit : stStationInfo.movement.stMovePath,
-          route : stStationInfo.movement.edMovePath,
-          detail : stStationInfo.movement.pathList,
-        },
-        onInfo : {
-          stationName : stStation.name,
-          onLine : stStation.line,
-          route : stStationInfo.movement.edMovePath,
-          toWay : routeInfo.driveInfoSet.driveInfo[0].wayName,
-          arrived : '',
-          etc : {
-            wheelchair : '',
-            shtDistance : stStationInfo.distance?.shtDistance.join(' '),
-            lngDistance : stStationInfo.distance?.lngDistance.join(' '),
-          },
-          mvTime : stStationInfo.mvTime.reduce((acc: any, curr: any) => acc + curr.travelTime, 0),
-          mvPathCnt : stStationInfo.mvPathNm.length,
-          mvPathNm : stStationInfo.mvPathNm.map((doc: any) => doc.startName),
-        },
-      },
+      stStation : stStationInfo,
       trStation : trStation,
-      endStation : {
-        offInfo : {
-          stationName : endStation.name,
-          offLine : endStation.line,
-          door : '',
-          arrived : '',
-        },
-        etc : {
-          shtOnLift : '',
-          shtDistance : '',
-          lngDistance : '',
-        },
-        endPath : {
-          exit : '',
-          route : '',
-          detail : [],
-        },
-      },
+      endStation : endStationInfo,
     },
   };
 
