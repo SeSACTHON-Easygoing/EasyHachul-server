@@ -52,7 +52,7 @@ export async function searchStationNameCtr (ctx: Context, next: Next) {
 
   ctx.response.body = {
     result : { success : true, message : '' },
-    data : searchList,
+    data : searchList.sort((a: any, b: any) => a.code - b.code),
   };
   await next();
 }
