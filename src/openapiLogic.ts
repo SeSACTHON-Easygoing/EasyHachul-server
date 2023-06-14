@@ -144,26 +144,26 @@ export async function getTrStationInfo (routeInfo: RouteAPI) {
               shtDistance : distance?.shtDistance.join(' '),
               lngDistance : distance?.lngDistance.join(' '),
             },
-            trInfo : {
-              route : trInfo.edMovePath,
-              detail : trInfo.pathList,
+          },
+          trInfo : {
+            route : trInfo.edMovePath,
+            detail : trInfo.pathList,
+          },
+          onInfo : {
+            stationName : doc.exName,
+            line : `${String(doc.exSID).slice(0, 1)}호선`,
+            route : `${doc.exName} 방면`,
+            toWay : routeInfo.driveInfoSet.driveInfo[index + 1].wayName === '내선순환' ?
+              '내선순환' : `${routeInfo.driveInfoSet.driveInfo[index + 1].wayName} 행`,
+            arrived : '',
+            etc : {
+              wheelchair : '',
+              shtDistance : distance?.shtDistance.join(' '),
+              lngDistance : distance?.lngDistance.join(' '),
             },
-            onInfo : {
-              stationName : doc.exName,
-              line : `${String(doc.exSID).slice(0, 1)}호선`,
-              route : `${doc.exName} 방면`,
-              toWay : routeInfo.driveInfoSet.driveInfo[index + 1].wayName === '내선순환' ?
-                '내선순환' : `${routeInfo.driveInfoSet.driveInfo[index + 1].wayName} 행`,
-              arrived : '',
-              etc : {
-                wheelchair : '',
-                shtDistance : distance?.shtDistance.join(' '),
-                lngDistance : distance?.lngDistance.join(' '),
-              },
-              mvTime : mvPath[mvPath.length - 1].travelTime,
-              mvPathCnt : mvPath.length,
-              mvPathNm : mvPath.map((doc: any) => doc.startName),
-            },
+            mvTime : mvPath[mvPath.length - 1].travelTime,
+            mvPathCnt : mvPath.length,
+            mvPathNm : mvPath.map((doc: any) => doc.startName),
           },
         };
       })
