@@ -67,7 +67,7 @@ export async function getTotalMovement (routeInfo: RouteAPI) {
 export async function getTransferMovement (routeInfo: RouteAPI, index: number) {
   const { driveInfoSet : { driveInfo }, stationSet : { stations } } = routeInfo;
   const response = await axios.get(
-    `${OPENAPI_TRFMOVEMENT}&lnCd=${driveInfo[index].laneID}`+
+    `${OPENAPI_TRFMOVEMENT}&lnCd=${driveInfo[index].laneID}` +
     `&stinCd=${stations[driveInfo[index].stationCount - 1].endSID}&chthTgtLn=${driveInfo[index].wayCode}`
   );
 
@@ -125,8 +125,9 @@ export async function getTrStationInfo (routeInfo: RouteAPI) {
   } else {
     const distance = await Promise.all(
       routeInfo.exChangeInfoSet.exChangeInfo.map(async (doc: any, index: number) => {
+        console.log('인덱스~');
         const distance = await getTrainDistances(
-          routeInfo, routeInfo.driveInfoSet.driveInfo[index].stationCount+1, index, true
+          routeInfo, routeInfo.driveInfoSet.driveInfo[index].stationCount + 1, index, true
         );
         const trInfo = await getTransferMovement(routeInfo, index);
         const mvPath = routeInfo.stationSet.stations.filter(
@@ -159,7 +160,7 @@ export async function getTrStationInfo (routeInfo: RouteAPI) {
                 shtDistance : distance?.shtDistance.join(' '),
                 lngDistance : distance?.lngDistance.join(' '),
               },
-              mvTime : mvPath[mvPath.length-1].travelTime,
+              mvTime : mvPath[mvPath.length - 1].travelTime,
               mvPathCnt : mvPath.length,
               mvPathNm : mvPath.map((doc: any) => doc.startName),
             },
@@ -172,20 +173,22 @@ export async function getTrStationInfo (routeInfo: RouteAPI) {
 }
 
 export async function getEndStationInfo (routeInfo: RouteAPI, endStation: any) {
+  console.log('33333333');
   const movement = await getTotalMovement(routeInfo);
   const { driveInfoSet : { driveInfo }, stationSet : { stations } } = routeInfo;
   const plfNo = stations[stations.length - 1].startID - stations[stations.length - 1].endSID === 1 ? 1 : 2;
-  const lastSt = await subwayDB.collection('seoulOp').findOne({ code : `0${stations[stations.length - 1].endSID}` });
+  // const lastSt = await subwayDB.collection('seoulOp').findOne({ code : endStation.code });
+  const lastCode = endStation.stCode.split('')[0] === '0' ? endStation.stCode.slice(1) : endStation.stCode;
   const response = await axios.get(
-    `${OPENAPI_DISTANCE}&lnCd=${lastSt!.line.slice(0, 1)}&stinCd=${lastSt!.stCode.slice(1)}&plfNo=${plfNo}`
+    `${OPENAPI_DISTANCE}&lnCd=${endStation.line.slice(0, 1)}&stinCd=${lastCode}&plfNo=${plfNo}`
   );
 
-  const list = response.data.body;
-  list.sort((a: any, b: any) => a.sfDst - b.sfDst);
-  const shtDistance = list.slice(0, 3).map((doc: any) => {
+  const { body } = response.data;
+  body.sort((a: any, b: any) => a.sfDst - b.sfDst);
+  const shtDistance = body.slice(0, 3).map((doc: any) => {
     return `${doc.carOrdr}-${doc.carEtrcNo}`;
   });
-  const lngDistance = list.slice(-4, -1).map((doc: any) => {
+  const lngDistance = body.slice(-4, -1).map((doc: any) => {
     return `${doc.carOrdr}-${doc.carEtrcNo}`;
   });
 
