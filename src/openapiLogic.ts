@@ -102,7 +102,7 @@ export async function getStStationInfo (routeInfo: RouteAPI, stStation: any) {
       detail : movement.pathList,
     },
     onInfo : {
-      stationName : stStation.name,
+      stationName : stStation.stNm,
       onLine : stStation.line,
       route : movement.edMovePath,
       toWay : routeInfo.driveInfoSet.driveInfo[0].wayName,
@@ -199,7 +199,7 @@ export async function getEndStationInfo (routeInfo: RouteAPI, endStation: any) {
 
   return {
     offInfo : {
-      stationName : endStation.name,
+      stationName : endStation.stNm,
       offLine : endStation.line,
       door : '',
       etc : {
